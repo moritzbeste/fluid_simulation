@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3 uid="uid://ckrwlis5bb0pt"]
+
+[ext_resource type="Script" uid="uid://duob26qp43iaw" path="res://particle_manager3d.gd" id="1_a202f"]
+
+[sub_resource type="MultiMesh" id="MultiMesh_noarx"]
+
+[node name="Node3D" type="Node3D"]
+script = ExtResource("1_a202f")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+
+[node name="MultiMeshInstance3D" type="MultiMeshInstance3D" parent="."]
+multimesh = SubResource("MultiMesh_noarx")

@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://d2gv4ua4lqctu"
+path="res://.godot/imported/histogram_compute.glsl-adafe5cf09c34b0eabf9a3c8ffb9daa8.res"
+
+[deps]
+
+source_file="res://shaders/histogram_compute.glsl"
+dest_files=["res://.godot/imported/histogram_compute.glsl-adafe5cf09c34b0eabf9a3c8ffb9daa8.res"]
+
+[params]
+
