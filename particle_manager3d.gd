@@ -1,20 +1,21 @@
 extends Node3D
 
 # management constants
-var POW_PARTICLES : int = 1
+var TESTING : bool = false
+var POW_PARTICLES : int = 11 if not TESTING else 1
 var NUMBER_PARTICLES : int = int(pow(2, POW_PARTICLES))
 var FLOATS_PER_PARTICLE : int = 8
 var INTS_PER_PARTICLE : int = 5
 @warning_ignore("integer_division")
 var DISPATCH_SIZE : Vector3i = Vector3i(NUMBER_PARTICLES / 64 if NUMBER_PARTICLES >= 64 else NUMBER_PARTICLES, 1, 1)
 var SUBDOMAIN_DIM : Vector3i
-var box_coeff : int = 3
-var BOX : Vector3i = Vector3i(2 * box_coeff, box_coeff, 1) # box is the domain where particles are confined. one corner is (0, 0, 0) and the other defined here
+var box_coeff : int = 4
+var BOX : Vector3i = Vector3i(2 * box_coeff, box_coeff, box_coeff) # box is the domain where particles are confined. one corner is (0, 0, 0) and the other defined here
 @warning_ignore("narrowing_conversion")
 var TEX : Vector2i = Vector2i(pow(2, int(floor(POW_PARTICLES / 2.0)) + 1), pow(2, int(ceil(POW_PARTICLES / 2.0))))
 var NUMBER_SUBDOMAINS : int
 var DELTA_OFFSET : int = 88
-var MAX_SPEED : float = 20.0
+var MAX_SPEED : float = 5.0
 var INIT_VEL_RANGE : float = 10.0
 var SLOW_COLOR : Color = Color.WHITE
 var FAST_COLOR : Color = Color.RED
@@ -68,10 +69,10 @@ func _ready():
 	energy_conservation = 0.5
 	gravity = 1
 	mass = 0.1
-	rho_0 = 0.1
+	rho_0 = 0.04
 	mu = 0.001
-	k = 8.14 * 0.01
-	h = 2
+	k = 8.14 * 0.8
+	h = 0.45
 	
 	SUBDOMAIN_DIM = Vector3i(int(ceil(BOX.x / h)), int(ceil(BOX.y / h)), int(ceil(BOX.z / h)))
 	NUMBER_SUBDOMAINS = SUBDOMAIN_DIM.x * SUBDOMAIN_DIM.y * SUBDOMAIN_DIM.z
@@ -91,7 +92,7 @@ func _ready():
 	view.format_override = tex_format.format
 	
 	particles_texture = rd.texture_create(tex_format, view)
-	var image : Image = create_particles_texture()
+	var image : Image = create_particles_texture() if not TESTING else test_particles_texture()
 	rd.texture_update(particles_texture, 0, image.get_data())
 	
 	# create buffers
@@ -143,6 +144,7 @@ func _ready():
 	cam.current = true
 	cam.near = 0.1
 	cam.far = 100
+	print(cam.basis)
 	
 	var box_instance = create_wireframe_box(BOX)
 	add_child(box_instance)
@@ -200,7 +202,7 @@ func _process(delta : float) -> void:
 	rd.submit()
 	rd.sync()
 	
-	#print_buffer(particles_texture, true, true)
+	if TESTING: print_buffer(particles_texture, true, true)
 	# read the RDTexture into an Image (this is synchronous and may be slow)
 	var tex_bytes : PackedByteArray = rd.texture_get_data(particles_texture, 0)
 	var read_img := Image.create_from_data(TEX.x, TEX.y, false, Image.FORMAT_RGBAF, tex_bytes)
@@ -314,6 +316,37 @@ func create_uniform(binding : int, buffer : RID, uniform_type) -> RDUniform:
 	uniform.binding = binding
 	uniform.add_id(buffer)
 	return uniform
+
+
+func test_particles_texture() -> Image:
+	assert(NUMBER_PARTICLES <= 2)
+	var image : Image = Image.create(TEX.x, TEX.y, false, Image.FORMAT_RGBAF) 
+	
+	for i in range(NUMBER_PARTICLES):
+		var pos : Vector3
+		var vel : Vector3
+		vel = Vector3(0.0, 0.0, 0.0)
+		#pos = Vector3(BOX.x / 2.0, radius * (2 * i + 1), BOX.z / 2.0)
+		pos = Vector3(BOX.x / 2.0 + radius * (2 * i + 1), radius, BOX.z / 2.0)
+		var den = 0.0
+		var t = 0.0
+		
+		var pos_den = Color(pos.x, pos.y, pos.z, den)
+		var vel_t = Color(vel.x, vel.y, vel.z, t)
+		
+		# two pixels per particle
+		var index0 : int = i * 2
+		var x0 : int = index0 % TEX.x
+		@warning_ignore("integer_division")
+		var y0 : int = index0 / TEX.x
+		image.set_pixel(x0, y0, pos_den)
+		
+		var index1 : int = index0 + 1
+		var x1 : int = index1 % TEX.x
+		@warning_ignore("integer_division")
+		var y1 : int = index1 / TEX.x
+		image.set_pixel(x1, y1, vel_t)
+	return image
 
 
 func create_particles_texture() -> Image:

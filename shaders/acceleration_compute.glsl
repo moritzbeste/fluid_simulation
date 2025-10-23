@@ -100,7 +100,7 @@ vec3 grad_spikey_smoothing_kernel(float dx, float dy, float dz, float r) {
         return vec3(0.0, 0.0, 0.0);
     }
     float diff = meta.h - r;
-    float coeff = meta.grad_spikey_h6_grad2_viscosity_coeff * (diff * diff / max(r, 1e-6));
+    float coeff = meta.grad_spikey_h6_grad2_viscosity_coeff * (diff * diff);
     return coeff * vec3(dx, dy, dz); 
 }
 
