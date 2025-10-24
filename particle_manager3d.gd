@@ -16,7 +16,7 @@ var BOX : Vector3i = Vector3i(2 * BOX_COEFF, BOX_COEFF, BOX_COEFF) # box is the 
 var TEX : Vector2i = Vector2i(pow(2, int(floor(POW_PARTICLES / 2.0)) + 1), pow(2, int(ceil(POW_PARTICLES / 2.0))))
 var NUMBER_SUBDOMAINS : int
 var DELTA_OFFSET : int = 88
-var MAX_SPEED : float = 5.0
+var MAX_SPEED : float = 10.0
 var INIT_VEL_RANGE : float = 10.0
 var SLOW_COLOR : Color = Color.WHITE
 var FAST_COLOR : Color = Color.RED
@@ -78,7 +78,7 @@ func _ready():
 	k = 8.14
 	h = 0.3
 	
-	SUBDOMAIN_DIM = Vector3i(int(ceil(BOX.x / h)), int(ceil(BOX.y / h)), int(ceil(BOX.z / h)))
+	SUBDOMAIN_DIM = Vector3i(int(max(floor(BOX.x / h), 1)), int(max(floor(BOX.y / h), 1)), int(max(floor(BOX.z / h), 1)))
 	NUMBER_SUBDOMAINS = SUBDOMAIN_DIM.x * SUBDOMAIN_DIM.y * SUBDOMAIN_DIM.z
 	
 	rd = RenderingServer.create_local_rendering_device()
@@ -207,10 +207,10 @@ func _process(delta : float) -> void:
 	rd.sync()
 	
 	if TESTING: print_buffer(particles_texture, true, true)
-	# read the RDTexture into an Image (this is synchronous and may be slow)
+	
+	# TODO This is slow
 	var tex_bytes : PackedByteArray = rd.texture_get_data(particles_texture, 0)
 	var read_img := Image.create_from_data(TEX.x, TEX.y, false, Image.FORMAT_RGBAF, tex_bytes)
-	# Replace previous texture contents
 	img_tex = ImageTexture.create_from_image(read_img)
 	particle_material.set_shader_parameter("particles_tex", img_tex)
 	
