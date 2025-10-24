@@ -3,14 +3,14 @@ extends Node3D
 # management constants
 var TESTING : bool = false
 var RENDER : bool = false
-var POW_PARTICLES : int = 10 if not TESTING else 1
+var POW_PARTICLES : int = 10 if not TESTING else 2
 var NUMBER_PARTICLES : int = int(pow(2, POW_PARTICLES))
 var FLOATS_PER_PARTICLE : int = 8
 var INTS_PER_PARTICLE : int = 5
 @warning_ignore("integer_division")
 var DISPATCH_SIZE : Vector3i = Vector3i(NUMBER_PARTICLES / 64 if NUMBER_PARTICLES >= 64 else NUMBER_PARTICLES, 1, 1)
 var SUBDOMAIN_DIM : Vector3i
-var BOX_COEFF : int = 4
+var BOX_COEFF : int = 5
 var BOX : Vector3i = Vector3i(2 * BOX_COEFF, BOX_COEFF, BOX_COEFF) # box is the domain where particles are confined. one corner is (0, 0, 0) and the other defined here
 @warning_ignore("narrowing_conversion")
 var TEX : Vector2i = Vector2i(pow(2, int(floor(POW_PARTICLES / 2.0)) + 1), pow(2, int(ceil(POW_PARTICLES / 2.0))))
@@ -21,7 +21,7 @@ var INIT_VEL_RANGE : float = 10.0
 var SLOW_COLOR : Color = Color.WHITE
 var FAST_COLOR : Color = Color.RED
 
-var NUM_FRAMES = 1200
+var NUM_FRAMES = 3600
 var frame_count = 0
 
 # coefficients
@@ -71,13 +71,13 @@ func _ready():
 	assert(TEX.x * TEX.y >= NUMBER_PARTICLES * 2)
 	if RENDER: DirAccess.make_dir_recursive_absolute("user://frames")
 	radius = 0.2
-	energy_conservation = 0.5
+	energy_conservation = 0.2
 	gravity = 1
 	mass = 0.1
-	rho_0 = 1.5
+	rho_0 = 1
 	mu = 0.001
 	k = 8.14
-	h = 0.3
+	h = 0.45
 	
 	SUBDOMAIN_DIM = Vector3i(int(max(floor(BOX.x / h), 1)), int(max(floor(BOX.y / h), 1)), int(max(floor(BOX.z / h), 1)))
 	NUMBER_SUBDOMAINS = SUBDOMAIN_DIM.x * SUBDOMAIN_DIM.y * SUBDOMAIN_DIM.z
@@ -148,8 +148,7 @@ func _ready():
 	cam.look_at(box_center, Vector3.UP)
 	cam.current = true
 	cam.near = 0.1
-	cam.far = 100
-	print(cam.basis)
+	cam.far = 120
 	
 	var box_instance = create_wireframe_box(BOX)
 	add_child(box_instance)
@@ -278,6 +277,7 @@ func update_delta(delta : float) -> void:
 	return
 
 
+# TODO replace with hillis steele scan
 func prefix_sum() -> void:
 	var writer : StreamPeerBuffer = StreamPeerBuffer.new()
 	var size : int = NUMBER_SUBDOMAINS * 4
@@ -335,8 +335,8 @@ func test_particles_texture() -> Image:
 		var pos : Vector3
 		var vel : Vector3
 		vel = Vector3(0.0, 0.0, 0.0)
-		#pos = Vector3(BOX.x / 2.0, radius * (2 * i + 1), BOX.z / 2.0)
-		pos = Vector3(BOX.x / 2.0 + radius * (2 * i + 1), radius, BOX.z / 2.0)
+		pos = Vector3(BOX.x / 2.0, radius * (2 * i + 1), BOX.z / 2.0)
+		#pos = Vector3(BOX.x / 2.0 + radius * (2 * i + 1), radius, BOX.z / 2.0)
 		#pos = Vector3(BOX.x / 2.0 + radius * ((2 * (i % 3)) + 1), radius * ((2 * (i / 9)) + 1), radius * (2 * ((i / 3) % 3) + 1))
 		var den = 0.0
 		var t = 0.0
@@ -369,10 +369,10 @@ func create_particles_texture() -> Image:
 		@warning_ignore("integer_division")
 		if i < int(NUMBER_PARTICLES / 2):
 			@warning_ignore("integer_division")
-			pos = Vector3(randf_range(radius, BOX.x / 5.0), randf_range(4 * BOX.y / 5.0, BOX.y - radius), randf_range(radius, float(BOX.z)))
+			pos = Vector3(randf_range(radius, BOX.x / 5.0), randf_range(radius, BOX.y / 2.0), randf_range(radius, float(BOX.z)))
 		else:
 			@warning_ignore("integer_division")
-			pos = Vector3(randf_range(4 * BOX.x / 5.0, BOX.x - radius), randf_range(4 * BOX.y / 5.0, BOX.y - radius), randf_range(radius, float(BOX.z)))
+			pos = Vector3(randf_range(4 * BOX.x / 5.0, BOX.x - radius), randf_range(radius, BOX.y / 2.0), randf_range(radius, float(BOX.z)))
 		var den = 0.0
 		var t = 0.0
 		
