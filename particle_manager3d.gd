@@ -10,7 +10,7 @@ var INTS_PER_PARTICLE : int = 5
 @warning_ignore("integer_division")
 var DISPATCH_SIZE : Vector3i = Vector3i(NUMBER_PARTICLES / 64 if NUMBER_PARTICLES >= 64 else NUMBER_PARTICLES, 1, 1)
 var SUBDOMAIN_DIM : Vector3i
-var BOX_COEFF : int = 8
+var BOX_COEFF : int = 4
 var BOX : Vector3i = Vector3i(2 * BOX_COEFF, BOX_COEFF, BOX_COEFF) # box is the domain where particles are confined. one corner is (0, 0, 0) and the other defined here
 @warning_ignore("narrowing_conversion")
 var TEX : Vector2i = Vector2i(pow(2, int(floor(POW_PARTICLES / 2.0)) + 1), pow(2, int(ceil(POW_PARTICLES / 2.0))))
