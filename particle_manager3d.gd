@@ -2,15 +2,16 @@ extends Node3D
 
 # management constants
 var TESTING : bool = false
-var POW_PARTICLES : int = 11 if not TESTING else 1
+var RENDER : bool = false
+var POW_PARTICLES : int = 10 if not TESTING else 1
 var NUMBER_PARTICLES : int = int(pow(2, POW_PARTICLES))
 var FLOATS_PER_PARTICLE : int = 8
 var INTS_PER_PARTICLE : int = 5
 @warning_ignore("integer_division")
 var DISPATCH_SIZE : Vector3i = Vector3i(NUMBER_PARTICLES / 64 if NUMBER_PARTICLES >= 64 else NUMBER_PARTICLES, 1, 1)
 var SUBDOMAIN_DIM : Vector3i
-var box_coeff : int = 4
-var BOX : Vector3i = Vector3i(2 * box_coeff, box_coeff, box_coeff) # box is the domain where particles are confined. one corner is (0, 0, 0) and the other defined here
+var BOX_COEFF : int = 8
+var BOX : Vector3i = Vector3i(2 * BOX_COEFF, BOX_COEFF, BOX_COEFF) # box is the domain where particles are confined. one corner is (0, 0, 0) and the other defined here
 @warning_ignore("narrowing_conversion")
 var TEX : Vector2i = Vector2i(pow(2, int(floor(POW_PARTICLES / 2.0)) + 1), pow(2, int(ceil(POW_PARTICLES / 2.0))))
 var NUMBER_SUBDOMAINS : int
@@ -19,6 +20,9 @@ var MAX_SPEED : float = 5.0
 var INIT_VEL_RANGE : float = 10.0
 var SLOW_COLOR : Color = Color.WHITE
 var FAST_COLOR : Color = Color.RED
+
+var NUM_FRAMES = 1200
+var frame_count = 0
 
 # coefficients
 var radius : float
@@ -69,10 +73,10 @@ func _ready():
 	energy_conservation = 0.5
 	gravity = 1
 	mass = 0.1
-	rho_0 = 0.04
+	rho_0 = 1.5
 	mu = 0.001
-	k = 8.14 * 0.8
-	h = 0.45
+	k = 8.14
+	h = 0.3
 	
 	SUBDOMAIN_DIM = Vector3i(int(ceil(BOX.x / h)), int(ceil(BOX.y / h)), int(ceil(BOX.z / h)))
 	NUMBER_SUBDOMAINS = SUBDOMAIN_DIM.x * SUBDOMAIN_DIM.y * SUBDOMAIN_DIM.z
@@ -139,7 +143,7 @@ func _ready():
 	var cam := Camera3D.new()
 	add_child(cam)
 	var box_center = BOX / 2.0
-	cam.position = box_center + Vector3(0, BOX.length() * 0.55, BOX.length() * 0.55)
+	cam.position = box_center + Vector3(0, 0, BOX.length() * 0.55)
 	cam.look_at(box_center, Vector3.UP)
 	cam.current = true
 	cam.near = 0.1
@@ -210,6 +214,11 @@ func _process(delta : float) -> void:
 	img_tex = ImageTexture.create_from_image(read_img)
 	particle_material.set_shader_parameter("particles_tex", img_tex)
 	
+	if RENDER:
+		var img = get_viewport().get_texture().get_image()
+		img.save_png("../frames/frame_%04d.png" % frame_count)
+		assert(frame_count < NUM_FRAMES)
+		frame_count += 1
 	return
 
 
@@ -319,7 +328,6 @@ func create_uniform(binding : int, buffer : RID, uniform_type) -> RDUniform:
 
 
 func test_particles_texture() -> Image:
-	assert(NUMBER_PARTICLES <= 2)
 	var image : Image = Image.create(TEX.x, TEX.y, false, Image.FORMAT_RGBAF) 
 	
 	for i in range(NUMBER_PARTICLES):
@@ -328,6 +336,7 @@ func test_particles_texture() -> Image:
 		vel = Vector3(0.0, 0.0, 0.0)
 		#pos = Vector3(BOX.x / 2.0, radius * (2 * i + 1), BOX.z / 2.0)
 		pos = Vector3(BOX.x / 2.0 + radius * (2 * i + 1), radius, BOX.z / 2.0)
+		#pos = Vector3(BOX.x / 2.0 + radius * ((2 * (i % 3)) + 1), radius * ((2 * (i / 9)) + 1), radius * (2 * ((i / 3) % 3) + 1))
 		var den = 0.0
 		var t = 0.0
 		

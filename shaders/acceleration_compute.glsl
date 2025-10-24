@@ -100,7 +100,7 @@ vec3 grad_spikey_smoothing_kernel(float dx, float dy, float dz, float r) {
         return vec3(0.0, 0.0, 0.0);
     }
     float diff = meta.h - r;
-    float coeff = meta.grad_spikey_h6_grad2_viscosity_coeff * (diff * diff);
+    float coeff = meta.grad_spikey_h6_grad2_viscosity_coeff * (diff * diff / r);
     return coeff * vec3(dx, dy, dz); 
 }
 
@@ -188,9 +188,9 @@ void main() {
         v.z *= meta.energy_cons;
     }
 
-    vec3 acceleration = calc_a(particle_index, s) * meta.delta;
+    vec3 acceleration = calc_a(particle_index, s) * 1/120.0;
     v += vec3(acceleration.x, acceleration.y, acceleration.z);
-    p += vec3(v.x * meta.delta, v.y * meta.delta, v.z * meta.delta);
+    p += vec3(v.x * 1/120.0, v.y * 1/120.0, v.z * 1/120.0);
     float speed_sq = v.x * v.x + v.y * v.y + v.z * v.z;
     float t = clamp(speed_sq / meta.max_speed_sq, 0.0, 1.0);
 
