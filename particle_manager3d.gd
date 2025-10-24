@@ -69,6 +69,7 @@ var img_tex
 
 func _ready():
 	assert(TEX.x * TEX.y >= NUMBER_PARTICLES * 2)
+	if RENDER: DirAccess.make_dir_recursive_absolute("user://frames")
 	radius = 0.2
 	energy_conservation = 0.5
 	gravity = 1
@@ -216,7 +217,7 @@ func _process(delta : float) -> void:
 	
 	if RENDER:
 		var img = get_viewport().get_texture().get_image()
-		img.save_png("../frames/frame_%04d.png" % frame_count)
+		img.save_png("user://frames/frame_%04d.png" % frame_count)
 		assert(frame_count < NUM_FRAMES)
 		frame_count += 1
 	return
