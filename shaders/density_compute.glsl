@@ -55,7 +55,7 @@ layout(set = 0, binding = 5, std430) restrict buffer Meta {
     float two_h_cube;
     // coefficients for smoothing kernels
     float poly6_coeff;
-    float grad_spikey_h6_grad2_viscosity_coeff;
+    float grad_spiky_h6_grad2_viscosity_coeff;
     float delta; // time between frames
 } meta;
 

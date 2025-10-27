@@ -55,7 +55,7 @@ layout(set = 0, binding = 5, std430) restrict buffer Meta {
     float two_h_cube;
     // coefficients for smoothing kernels
     float poly6_coeff;
-    float grad_spikey_h6_grad2_viscosity_coeff;
+    float grad_spiky_h6_grad2_viscosity_coeff;
     float delta; // time between frames
 } meta;
 
@@ -94,13 +94,13 @@ void put_pos_vel(uint index, vec3 pos, vec3 vel, float t) {
 }
 
 
-// spikey used for pressure estimation
-vec3 grad_spikey_smoothing_kernel(float dx, float dy, float dz, float r) {
+// spiky used for pressure estimation
+vec3 grad_spiky_smoothing_kernel(float dx, float dy, float dz, float r) {
     if (r <= 0.0 || r > meta.h) {
         return vec3(0.0, 0.0, 0.0);
     }
     float diff = meta.h - r;
-    float coeff = meta.grad_spikey_h6_grad2_viscosity_coeff * (diff * diff / r);
+    float coeff = meta.grad_spiky_h6_grad2_viscosity_coeff * (diff * diff);
     return coeff * vec3(dx, dy, dz); 
 }
 
@@ -112,7 +112,7 @@ float grad2_viscosity_smoothing_kernel(float r) {
 
 vec3 calc_a(uint particle_index, ivec3 s) {
     vec4 p_i = get_pos_den(particle_index);
-    float pressure_i = meta.k * (p_i.w - meta.rho_0);
+    float pressure_i = meta.k * -abs(p_i.w - meta.rho_0);
 
     vec3 f_pressure = vec3(0.0, 0.0, 0.0);
     // find surrounding subdomains
@@ -138,8 +138,8 @@ vec3 calc_a(uint particle_index, ivec3 s) {
                         float r_sq = dist_x * dist_x + dist_y * dist_y + dist_z * dist_z;
                         float r = sqrt(r_sq);
                         // pressure
-                        float pressure_j = meta.k * (p_j.w - meta.rho_0);
-                        f_pressure += meta.m * (pressure_i + pressure_j) / (2 * p_j.w) * grad_spikey_smoothing_kernel(dist_x, dist_y, dist_z, r);
+                        float pressure_j = meta.k * -abs(p_j.w - meta.rho_0);
+                        f_pressure -= meta.m * (pressure_i + pressure_j) / (2 * p_j.w) * grad_spiky_smoothing_kernel(dist_x, dist_y, dist_z, r);
                     }
                 }
             }

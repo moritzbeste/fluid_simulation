@@ -3,14 +3,14 @@ extends Node3D
 # management constants
 var TESTING : bool = false
 var RENDER : bool = false
-var POW_PARTICLES : int = 10 if not TESTING else 2
+var POW_PARTICLES : int = 10 if not TESTING else 1
 var NUMBER_PARTICLES : int = int(pow(2, POW_PARTICLES))
 var FLOATS_PER_PARTICLE : int = 8
 var INTS_PER_PARTICLE : int = 5
 @warning_ignore("integer_division")
 var DISPATCH_SIZE : Vector3i = Vector3i(NUMBER_PARTICLES / 64 if NUMBER_PARTICLES >= 64 else NUMBER_PARTICLES, 1, 1)
 var SUBDOMAIN_DIM : Vector3i
-var BOX_COEFF : int = 5
+var BOX_COEFF : int = 15
 var BOX : Vector3i = Vector3i(2 * BOX_COEFF, BOX_COEFF, BOX_COEFF) # box is the domain where particles are confined. one corner is (0, 0, 0) and the other defined here
 @warning_ignore("narrowing_conversion")
 var TEX : Vector2i = Vector2i(pow(2, int(floor(POW_PARTICLES / 2.0)) + 1), pow(2, int(ceil(POW_PARTICLES / 2.0))))
@@ -70,14 +70,14 @@ var img_tex
 func _ready():
 	assert(TEX.x * TEX.y >= NUMBER_PARTICLES * 2)
 	if RENDER: DirAccess.make_dir_recursive_absolute("user://frames")
-	radius = 0.2
-	energy_conservation = 0.2
-	gravity = 1
+	radius = 0.5
+	energy_conservation = 0.5
+	gravity = 9.81
 	mass = 0.1
-	rho_0 = 1
+	rho_0 = 1000
 	mu = 0.001
-	k = 8.14
-	h = 0.45
+	k = 8.14 * 0.1
+	h = 1.0
 	
 	SUBDOMAIN_DIM = Vector3i(int(max(floor(BOX.x / h), 1)), int(max(floor(BOX.y / h), 1)), int(max(floor(BOX.z / h), 1)))
 	NUMBER_SUBDOMAINS = SUBDOMAIN_DIM.x * SUBDOMAIN_DIM.y * SUBDOMAIN_DIM.z
@@ -206,7 +206,7 @@ func _process(delta : float) -> void:
 	rd.submit()
 	rd.sync()
 	
-	if TESTING: print_buffer(particles_texture, true, true)
+	if TESTING: print_density(particles_texture)
 	
 	# TODO This is slow
 	var tex_bytes : PackedByteArray = rd.texture_get_data(particles_texture, 0)
@@ -313,6 +313,22 @@ func print_buffer(buffer : RID, tex : bool, floats : bool) -> void:
 	return
 
 
+func print_density(buffer : RID) -> void: 
+	var bytes = rd.texture_get_data(buffer, 0)
+	#print("bytes: ", bytes)
+	var reader = StreamPeerBuffer.new()
+	reader.data_array = bytes
+	var list = []
+	var total : float = 0.0
+	for i in range(12, len(bytes), 32):
+		reader.seek(i)
+		var den : float = reader.get_float()
+		list.append(den)
+		total += den
+	print(list, " avg: ", total / (len(bytes) / 32))
+	return
+
+
 func shader_dispatch(cl : int, pipeline : RID, uniform_set : RID) -> void:
 	rd.compute_list_bind_compute_pipeline(cl, pipeline)
 	rd.compute_list_bind_uniform_set(cl, uniform_set, 0)
@@ -372,7 +388,7 @@ func create_particles_texture() -> Image:
 			pos = Vector3(randf_range(radius, BOX.x / 5.0), randf_range(radius, BOX.y / 2.0), randf_range(radius, float(BOX.z)))
 		else:
 			@warning_ignore("integer_division")
-			pos = Vector3(randf_range(4 * BOX.x / 5.0, BOX.x - radius), randf_range(radius, BOX.y / 2.0), randf_range(radius, float(BOX.z)))
+			pos = Vector3(randf_range(4 * BOX.x / 5.0, BOX.x - radius), randf_range(radius + BOX.y / 10.0, BOX.y / 2.0), randf_range(radius, float(BOX.z)))
 		var den = 0.0
 		var t = 0.0
 		
@@ -419,7 +435,7 @@ func pack_meta() -> PackedByteArray:
 	writer.put_float(pow(h, 2)) # h^2
 	writer.put_float(2 * pow(h, 3)) # 2 * h^3
 	writer.put_float(315 / (64 * PI * pow(h, 9))) # poly6 coefficient : 315 / (64 * pi * h^9)
-	writer.put_float(45 / (PI * pow(h, 6))) # gradient spikey coefficient h6 and grad2 viscosity coeff : 45 / (pi * h^6)
+	writer.put_float(45 / (PI * pow(h, 6))) # gradient spiky coefficient h6 and grad2 viscosity coeff : 45 / (pi * h^6)
 	writer.put_float(0.0) # delta
 	
 	return writer.data_array
